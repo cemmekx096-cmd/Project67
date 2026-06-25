@@ -8,8 +8,13 @@ import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
+import com.lagradost.cloudstream3.utils.SubtitleFile
 import com.lagradost.cloudstream3.utils.loadExtractor
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import java.util.ArrayList
+
+val app = Injekt.get<AppApi>()
 
 class KisskhProvider : MainAPI() {
     override var mainUrl = "https://kisskh.do"
@@ -24,14 +29,8 @@ class KisskhProvider : MainAPI() {
     private val apiUrl = "$mainUrl/api"
 
     override val mainPage = mainPageOf(
-        "&type=2&sub=0&country=2&status=0&order=1" to "Movie Popular",
-        "&type=2&sub=0&country=2&status=0&order=2" to "Movie Last Update",
-        "&type=1&sub=0&country=2&status=0&order=1" to "TVSeries Popular",
-        "&type=1&sub=0&country=2&status=0&order=2" to "TVSeries Last Update",
-        "&type=3&sub=0&country=0&status=0&order=1" to "Anime Popular",
-        "&type=3&sub=0&country=0&status=0&order=2" to "Anime Last Update",
-        "&type=4&sub=0&country=0&status=0&order=1" to "Hollywood Popular",
-        "&type=4&sub=0&country=0&status=0&order=2" to "Hollywood Last Update",
+        "&type=0&sub=0&country=0&status=0&order=1" to "Popular",
+        "&type=0&sub=0&country=0&status=0&order=2" to "Latest Update",
     )
 
     override suspend fun getMainPage(

@@ -15,12 +15,16 @@ buildscript {
     }
 }
 
-// ── HAPUS allprojects { repositories } BLOCK ──
-// Repository config sudah di settings.gradle.kts via dependencyResolutionManagement
+plugins {
+    id("com.android.library") version "7.0.4" apply false
+    kotlin("android") version "1.9.22" apply false
+}
 
-fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) = extensions.getByName<CloudstreamExtension>("cloudstream").configuration()
+fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) =
+    extensions.getByName<CloudstreamExtension>("cloudstream").configuration()
 
-fun Project.android(configuration: BaseExtension.() -> Unit) = extensions.getByName<BaseExtension>("android").configuration()
+fun Project.android(configuration: BaseExtension.() -> Unit) =
+    extensions.getByName<BaseExtension>("android").configuration()
 
 subprojects {
     apply(plugin = "com.android.library")
@@ -55,15 +59,13 @@ subprojects {
         }
     }
 
-    configurations {
-        create("apk")
-    }
-
     dependencies {
-        val apk by configurations
+        val apk by configurations.creating
         val implementation by configurations
+        val compileOnly by configurations
 
         apk("com.lagradost:cloudstream3:pre-release")
+        compileOnly("com.lagradost:cloudstream3:pre-release")
 
         implementation(kotlin("stdlib"))
         implementation("com.github.Blatzar:NiceHttp:0.4.11")
