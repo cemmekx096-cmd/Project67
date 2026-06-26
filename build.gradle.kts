@@ -27,14 +27,6 @@ fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) =
 fun Project.android(configuration: BaseExtension.() -> Unit) =
     extensions.getByName<BaseExtension>("android").configuration()
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven("https://jitpack.io")
-        maven("https://maven.pkg.jetbrains.space/public/p/kotlinx-html/maven")
-    }
-}
 
 subprojects {
     apply(plugin = "com.android.library")
