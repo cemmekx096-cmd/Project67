@@ -60,12 +60,7 @@ subprojects {
     }
 
     dependencies {
-        val apk by configurations.creating
         val implementation by configurations
-        val compileOnly by configurations
-
-        apk("com.github.recloudstream:cloudstream3:pre-release")
-        compileOnly("com.github.recloudstream:cloudstream3:pre-release")
 
         implementation(kotlin("stdlib"))
         implementation("com.github.Blatzar:NiceHttp:0.4.11")
