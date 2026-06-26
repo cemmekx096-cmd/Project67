@@ -27,7 +27,6 @@ fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) =
 fun Project.android(configuration: BaseExtension.() -> Unit) =
     extensions.getByName<BaseExtension>("android").configuration()
 
-
 subprojects {
     apply(plugin = "com.android.library")
     apply(plugin = "kotlin-android")
@@ -65,11 +64,8 @@ subprojects {
         val implementation by configurations
         val compileOnly by configurations
 
-        // ✅ CloudStream3 SDK
-        compileOnly("com.github.recloudstream:cloudstream3:-SNAPSHOT")
-        
-        // ✅ Injekt
-        implementation("uy.kohesive:injekt-core:2.2.0")
+        // ✅ Injekt - ganti versi
+        implementation("uy.kohesive:injekt:2.2.0")
 
         implementation(kotlin("stdlib"))
         implementation("com.github.Blatzar:NiceHttp:0.4.11")
