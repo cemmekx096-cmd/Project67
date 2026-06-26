@@ -1,9 +1,11 @@
 package com.hexated
 
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
-import com.lagradost.cloudstream3.api.Provider
+import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class KisskhProviderPlugin: Provider {
-    override val mainApi = KisskhProvider()
+class KisskhProviderPlugin: Plugin() {
+    override fun load(context: android.content.Context) {
+        registerMainAPI(KisskhProvider())
+    }
 }
