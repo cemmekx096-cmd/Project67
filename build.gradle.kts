@@ -6,6 +6,7 @@ buildscript {
         google()
         mavenCentral()
         maven("https://jitpack.io")
+        maven("https://maven.pkg.jetbrains.space/public/p/kotlinx-html/maven")
     }
 
     dependencies {
@@ -25,6 +26,15 @@ fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) =
 
 fun Project.android(configuration: BaseExtension.() -> Unit) =
     extensions.getByName<BaseExtension>("android").configuration()
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+        maven("https://maven.pkg.jetbrains.space/public/p/kotlinx-html/maven")
+    }
+}
 
 subprojects {
     apply(plugin = "com.android.library")
@@ -61,6 +71,13 @@ subprojects {
 
     dependencies {
         val implementation by configurations
+        val compileOnly by configurations
+
+        // ✅ CloudStream3 SDK
+        compileOnly("com.github.recloudstream:cloudstream3:-SNAPSHOT")
+        
+        // ✅ Injekt
+        implementation("uy.kohesive:injekt-core:2.2.0")
 
         implementation(kotlin("stdlib"))
         implementation("com.github.Blatzar:NiceHttp:0.4.11")
