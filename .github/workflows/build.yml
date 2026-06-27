@@ -6,6 +6,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # ← tambahkan ini
     steps:
       - name: Checkout master
         uses: actions/checkout@v4
