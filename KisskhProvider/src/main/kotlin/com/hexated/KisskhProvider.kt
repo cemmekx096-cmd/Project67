@@ -191,7 +191,7 @@ class KisskhProvider : MainAPI() {
                 )
 
                 subtitleCallback.invoke(
-                    SubtitleFile(lang, "data:text/srt;base64,$base64")
+                    SubtitleFile(lang, "data:text/srt;base64,$base64", false)
                 )
             }
         }
