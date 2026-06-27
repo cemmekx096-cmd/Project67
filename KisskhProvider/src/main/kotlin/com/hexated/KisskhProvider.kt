@@ -197,7 +197,7 @@ class KisskhProvider : MainAPI() {
                     ?.forEach { it.delete() }
 
                 subtitleCallback.invoke(
-                    SubtitleFile(lang, cacheFile.toURI().toString())
+                    SubtitleFile(lang, "file://${cacheFile.absolutePath}")
                 )
             }
         }
