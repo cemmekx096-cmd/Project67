@@ -26,8 +26,14 @@ class KisskhProvider : MainAPI() {
     private val apiUrl = "$mainUrl/api"
 
     override val mainPage = mainPageOf(
-        "&type=0&sub=0&country=0&status=0&order=1" to "Popular",
-        "&type=0&sub=0&country=0&status=0&order=2" to "Latest Update",
+        "&type=2&sub=0&country=2&status=0&order=1" to "Movie Popular",
+        "&type=2&sub=0&country=2&status=0&order=2" to "Movie Last Update",
+        "&type=1&sub=0&country=2&status=0&order=1" to "TVSeries Popular",
+        "&type=1&sub=0&country=2&status=0&order=2" to "TVSeries Last Update",
+        "&type=3&sub=0&country=0&status=0&order=1" to "Anime Popular",
+        "&type=3&sub=0&country=0&status=0&order=2" to "Anime Last Update",
+        "&type=4&sub=0&country=0&status=0&order=1" to "Hollywood Popular",
+        "&type=4&sub=0&country=0&status=0&order=2" to "Hollywood Last Update",
     )
 
     override suspend fun getMainPage(
@@ -165,12 +171,12 @@ class KisskhProvider : MainAPI() {
         }
 
         app.get("$apiUrl/Sub/${loadData.epsId}?kkey=$subKkey").text.let { res ->
-            tryParseJson<List<Subtitle>>(res)?.map { sub ->
-                val subUrl = sub.src ?: return@map
-                val lang = getLanguage(sub.label ?: return@map)
+            tryParseJson<List<Subtitle>>(res)?.forEach { sub ->
+                val subUrl = sub.src ?: return@forEach
+                val lang = getLanguage(sub.label ?: return@forEach)
 
                 // Filter Indonesian only
-                if (lang != "Indonesian") return@map
+                if (lang != "Indonesian") return@forEach
 
                 // Fetch raw subtitle
                 val rawContent = app.get(subUrl).text
@@ -178,17 +184,14 @@ class KisskhProvider : MainAPI() {
                 // Decrypt if needed
                 val finalContent = KisskhKey.decryptSubtitleContent(rawContent, subUrl)
 
-                // Auto detect format SRT atau VTT
-                val mimeType = if (finalContent.trimStart().startsWith("WEBVTT")) "text/vtt" else "text/srt"
-
-                // Encode ke base64 data URI
+                // Encode ke base64 data URI — semua sub kisskh .srt
                 val base64 = android.util.Base64.encodeToString(
                     finalContent.toByteArray(Charsets.UTF_8),
                     android.util.Base64.NO_WRAP
                 )
 
                 subtitleCallback.invoke(
-                    SubtitleFile(lang, "data:$mimeType;base64,$base64")
+                    SubtitleFile(lang, "data:text/srt;base64,$base64")
                 )
             }
         }
