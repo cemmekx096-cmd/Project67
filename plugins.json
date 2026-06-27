@@ -1,10 +1,10 @@
 [
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=kisskh.do&sz=%size%",
-        "fileHash": "sha256-7b01f681697bb6c375de7d35f1c45e48b00dbc6f34625331aa0f8a8c4dd0d1dd",
+        "fileHash": "sha256-336dcc66aa0e531a0658ac5651317c564dd45060dd8b312057b7763d0a22b097",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cemmekx096-cmd/Project67",
-        "fileSize": 29354,
+        "fileSize": 29232,
         "status": 1,
         "language": "id",
         "authors": [
@@ -14,7 +14,7 @@
             "AsianDrama",
             "Anime"
         ],
-        "version": 3,
+        "version": 4,
         "internalName": "KisskhProvider",
         "description": "KissKH - Drama/Anime provider with kkey auth & dual AES subtitle decrypt (V1/V2)",
         "url": "https://raw.githubusercontent.com/cemmekx096-cmd/Project67/builds/KisskhProvider.cs3",
