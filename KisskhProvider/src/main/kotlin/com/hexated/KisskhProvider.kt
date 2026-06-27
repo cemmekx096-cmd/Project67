@@ -8,9 +8,10 @@ import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
-import com.lagradost.cloudstream3.utils.SubtitleFile
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.SubtitleFile
 import kotlinx.coroutines.coroutineScope
+import android.os.Environment
 import java.io.File
 import java.util.ArrayList
 
@@ -176,10 +177,12 @@ class KisskhProvider : MainAPI() {
                 // Decrypt if needed
                 val finalContent = KisskhKey.decryptSubtitleContent(rawContent, subUrl)
 
-                // Write to cache file and pass URL
-                val cacheFile = File.createTempFile("sub_${loadData.epsId}_${lang}", ".vtt")
+                // Simpan ke Downloads, pass URI ke player
+                val cacheFile = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    "kisskh_sub_${loadData.epsId}_${lang}.vtt"
+                )
                 cacheFile.writeText(finalContent)
-                cacheFile.deleteOnExit()
 
                 subtitleCallback.invoke(
                     SubtitleFile(lang, cacheFile.toURI().toString())
