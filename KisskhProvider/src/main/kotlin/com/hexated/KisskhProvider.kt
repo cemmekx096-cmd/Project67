@@ -10,9 +10,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.SubtitleFile
-import com.lagradost.cloudstream3.AcraApplication.Companion.context
 import kotlinx.coroutines.coroutineScope
-import java.io.File
 import java.util.ArrayList
 
 class KisskhProvider : MainAPI() {
@@ -28,8 +26,14 @@ class KisskhProvider : MainAPI() {
     private val apiUrl = "$mainUrl/api"
 
     override val mainPage = mainPageOf(
-        "&type=0&sub=0&country=0&status=0&order=1" to "Popular",
-        "&type=0&sub=0&country=0&status=0&order=2" to "Latest Update",
+        "&type=2&sub=0&country=2&status=0&order=1" to "Movie Popular",
+        "&type=2&sub=0&country=2&status=0&order=2" to "Movie Last Update",
+        "&type=1&sub=0&country=2&status=0&order=1" to "TVSeries Popular",
+        "&type=1&sub=0&country=2&status=0&order=2" to "TVSeries Last Update",
+        "&type=3&sub=0&country=0&status=0&order=1" to "Anime Popular",
+        "&type=3&sub=0&country=0&status=0&order=2" to "Anime Last Update",
+        "&type=4&sub=0&country=0&status=0&order=1" to "Hollywood Popular",
+        "&type=4&sub=0&country=0&status=0&order=2" to "Hollywood Last Update",
     )
 
     override suspend fun getMainPage(
@@ -166,13 +170,6 @@ class KisskhProvider : MainAPI() {
             return true
         }
 
-        val cacheDir = context?.cacheDir ?: return true
-
-        // Hapus semua file kisskh_ lama sebelum download yang baru
-        cacheDir.listFiles()
-            ?.filter { it.name.startsWith("kisskh_") }
-            ?.forEach { it.delete() }
-
         app.get("$apiUrl/Sub/${loadData.epsId}?kkey=$subKkey").text.let { res ->
             tryParseJson<List<Subtitle>>(res)?.map { sub ->
                 val subUrl = sub.src ?: return@map
@@ -187,13 +184,14 @@ class KisskhProvider : MainAPI() {
                 // Decrypt if needed
                 val finalContent = KisskhKey.decryptSubtitleContent(rawContent, subUrl)
 
-                // Tulis ke cache + set readable
-                val cacheFile = File(cacheDir, "kisskh_${loadData.epsId}_${lang}.vtt")
-                cacheFile.writeText(finalContent)
-                cacheFile.setReadable(true, false)
+                // Encode ke base64 data URI — tidak perlu tulis file
+                val base64 = android.util.Base64.encodeToString(
+                    finalContent.toByteArray(Charsets.UTF_8),
+                    android.util.Base64.NO_WRAP
+                )
 
                 subtitleCallback.invoke(
-                    SubtitleFile(lang, "file://${cacheFile.absolutePath}")
+                    SubtitleFile(lang, "data:text/vtt;base64,$base64")
                 )
             }
         }
