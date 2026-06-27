@@ -10,8 +10,8 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.AcraApplication.Companion.context
 import kotlinx.coroutines.coroutineScope
-import android.os.Environment
 import java.io.File
 import java.util.ArrayList
 
@@ -28,8 +28,14 @@ class KisskhProvider : MainAPI() {
     private val apiUrl = "$mainUrl/api"
 
     override val mainPage = mainPageOf(
-        "&type=0&sub=0&country=0&status=0&order=1" to "Popular",
-        "&type=0&sub=0&country=0&status=0&order=2" to "Latest Update",
+        "&type=2&sub=0&country=2&status=0&order=1" to "Movie Popular",
+        "&type=2&sub=0&country=2&status=0&order=2" to "Movie Last Update",
+        "&type=1&sub=0&country=2&status=0&order=1" to "TVSeries Popular",
+        "&type=1&sub=0&country=2&status=0&order=2" to "TVSeries Last Update",
+        "&type=3&sub=0&country=0&status=0&order=1" to "Anime Popular",
+        "&type=3&sub=0&country=0&status=0&order=2" to "Anime Last Update",
+        "&type=4&sub=0&country=0&status=0&order=1" to "Hollywood Popular",
+        "&type=4&sub=0&country=0&status=0&order=2" to "Hollywood Last Update",
     )
 
     override suspend fun getMainPage(
@@ -177,12 +183,18 @@ class KisskhProvider : MainAPI() {
                 // Decrypt if needed
                 val finalContent = KisskhKey.decryptSubtitleContent(rawContent, subUrl)
 
-                // Simpan ke Downloads, pass URI ke player
-                val cacheFile = File(
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                    "kisskh_sub_${loadData.epsId}_${lang}.vtt"
-                )
+                // Pakai internal cache CS3
+                val cacheDir = context?.cacheDir ?: return@map
+                val cacheFile = File(cacheDir, "kisskh_${loadData.epsId}_${lang}.vtt")
                 cacheFile.writeText(finalContent)
+
+                // Auto cleanup file kisskh_ yang lebih dari 2 jam
+                cacheDir.listFiles()
+                    ?.filter {
+                        it.name.startsWith("kisskh_") &&
+                        System.currentTimeMillis() - it.lastModified() > 2 * 60 * 60 * 1000
+                    }
+                    ?.forEach { it.delete() }
 
                 subtitleCallback.invoke(
                     SubtitleFile(lang, cacheFile.toURI().toString())
