@@ -26,14 +26,8 @@ class KisskhProvider : MainAPI() {
     private val apiUrl = "$mainUrl/api"
 
     override val mainPage = mainPageOf(
-        "&type=2&sub=0&country=2&status=0&order=1" to "Movie Popular",
-        "&type=2&sub=0&country=2&status=0&order=2" to "Movie Last Update",
-        "&type=1&sub=0&country=2&status=0&order=1" to "TVSeries Popular",
-        "&type=1&sub=0&country=2&status=0&order=2" to "TVSeries Last Update",
-        "&type=3&sub=0&country=0&status=0&order=1" to "Anime Popular",
-        "&type=3&sub=0&country=0&status=0&order=2" to "Anime Last Update",
-        "&type=4&sub=0&country=0&status=0&order=1" to "Hollywood Popular",
-        "&type=4&sub=0&country=0&status=0&order=2" to "Hollywood Last Update",
+        "&type=0&sub=0&country=0&status=0&order=1" to "Popular",
+        "&type=0&sub=0&country=0&status=0&order=2" to "Latest Update",
     )
 
     override suspend fun getMainPage(
@@ -184,14 +178,17 @@ class KisskhProvider : MainAPI() {
                 // Decrypt if needed
                 val finalContent = KisskhKey.decryptSubtitleContent(rawContent, subUrl)
 
-                // Encode ke base64 data URI — tidak perlu tulis file
+                // Auto detect format SRT atau VTT
+                val mimeType = if (finalContent.trimStart().startsWith("WEBVTT")) "text/vtt" else "text/srt"
+
+                // Encode ke base64 data URI
                 val base64 = android.util.Base64.encodeToString(
                     finalContent.toByteArray(Charsets.UTF_8),
                     android.util.Base64.NO_WRAP
                 )
 
                 subtitleCallback.invoke(
-                    SubtitleFile(lang, "data:text/vtt;base64,$base64")
+                    SubtitleFile(lang, "data:$mimeType;base64,$base64")
                 )
             }
         }
