@@ -10,11 +10,9 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.SubtitleFile
 import com.lagradost.cloudstream3.utils.loadExtractor
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
+import kotlinx.coroutines.coroutineScope
+import java.io.File
 import java.util.ArrayList
-
-val app = Injekt.get<AppApi>()
 
 class KisskhProvider : MainAPI() {
     override var mainUrl = "https://kisskh.do"
@@ -86,10 +84,9 @@ class KisskhProvider : MainAPI() {
             ?: throw ErrorLoadingException("Invalid Json response")
 
         val episodes = res.episodes?.map { eps ->
-            Episode(
-                data = Data(res.title, eps.number, res.id, eps.id).toJson(),
-                episode = eps.number
-            )
+            newEpisode(Data(res.title, eps.number, res.id, eps.id).toJson()) {
+                this.episode = eps.number
+            }
         } ?: throw ErrorLoadingException("No Episode")
 
         return newTvSeriesLoadResponse(
@@ -138,22 +135,24 @@ class KisskhProvider : MainAPI() {
             "$apiUrl/DramaList/Episode/${loadData.epsId}.png?err=false&ts=null&time=null&kkey=$kkey",
             referer = "$mainUrl/Drama/${getTitle("${loadData.title}")}/Episode-${loadData.eps}?id=${loadData.id}&ep=${loadData.epsId}&page=0&pageSize=100"
         ).parsedSafe<Sources>()?.let { source ->
-            listOf(source.video, source.thirdParty).apmap { link ->
-                safeApiCall {
-                    if (link?.contains(".m3u8") == true) {
-                        M3u8Helper.generateM3u8(
-                            this.name,
-                            link,
-                            referer = "$mainUrl/",
-                            headers = mapOf("Origin" to mainUrl)
-                        ).forEach(callback)
-                    } else if (link != null) {
-                        loadExtractor(
-                            link.substringBefore("=http"),
-                            "$mainUrl/",
-                            subtitleCallback,
-                            callback
-                        )
+            coroutineScope {
+                listOf(source.video, source.thirdParty).map { link ->
+                    safeApiCall {
+                        if (link?.contains(".m3u8") == true) {
+                            M3u8Helper.generateM3u8(
+                                this@KisskhProvider.name,
+                                link,
+                                referer = "$mainUrl/",
+                                headers = mapOf("Origin" to mainUrl)
+                            ).forEach(callback)
+                        } else if (link != null) {
+                            loadExtractor(
+                                link.substringBefore("=http"),
+                                "$mainUrl/",
+                                subtitleCallback,
+                                callback
+                            )
+                        }
                     }
                 }
             }
@@ -163,7 +162,7 @@ class KisskhProvider : MainAPI() {
         val subKkey = try {
             KisskhKey.subKey(loadData.epsId?.toInt() ?: return true)
         } catch (e: Exception) {
-            return true  // continue even if sub fetch fails
+            return true
         }
 
         app.get("$apiUrl/Sub/${loadData.epsId}?kkey=$subKkey").text.let { res ->
@@ -174,11 +173,16 @@ class KisskhProvider : MainAPI() {
                 // Fetch raw subtitle
                 val rawContent = app.get(subUrl).text
 
-                // Decrypt if needed (detect from URL extension + content)
+                // Decrypt if needed
                 val finalContent = KisskhKey.decryptSubtitleContent(rawContent, subUrl)
 
+                // Write to cache file and pass URL
+                val cacheFile = File.createTempFile("sub_${loadData.epsId}_${lang}", ".vtt")
+                cacheFile.writeText(finalContent)
+                cacheFile.deleteOnExit()
+
                 subtitleCallback.invoke(
-                    SubtitleFile(lang, finalContent)
+                    SubtitleFile(lang, cacheFile.toURI().toString())
                 )
             }
         }
