@@ -8,10 +8,13 @@ import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
+import com.lagradost.cloudstream3.utils.SubtitleFile
 import com.lagradost.cloudstream3.utils.loadExtractor
-import com.lagradost.cloudstream3.SubtitleFile
-import kotlinx.coroutines.coroutineScope
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import java.util.ArrayList
+
+val app = Injekt.get<AppApi>()
 
 class KisskhProvider : MainAPI() {
     override var mainUrl = "https://kisskh.do"
@@ -26,14 +29,8 @@ class KisskhProvider : MainAPI() {
     private val apiUrl = "$mainUrl/api"
 
     override val mainPage = mainPageOf(
-        "&type=2&sub=0&country=2&status=0&order=1" to "Movie Popular",
-        "&type=2&sub=0&country=2&status=0&order=2" to "Movie Last Update",
-        "&type=1&sub=0&country=2&status=0&order=1" to "TVSeries Popular",
-        "&type=1&sub=0&country=2&status=0&order=2" to "TVSeries Last Update",
-        "&type=3&sub=0&country=0&status=0&order=1" to "Anime Popular",
-        "&type=3&sub=0&country=0&status=0&order=2" to "Anime Last Update",
-        "&type=4&sub=0&country=0&status=0&order=1" to "Hollywood Popular",
-        "&type=4&sub=0&country=0&status=0&order=2" to "Hollywood Last Update",
+        "&type=0&sub=0&country=0&status=0&order=1" to "Popular",
+        "&type=0&sub=0&country=0&status=0&order=2" to "Latest Update",
     )
 
     override suspend fun getMainPage(
@@ -89,9 +86,10 @@ class KisskhProvider : MainAPI() {
             ?: throw ErrorLoadingException("Invalid Json response")
 
         val episodes = res.episodes?.map { eps ->
-            newEpisode(Data(res.title, eps.number, res.id, eps.id).toJson()) {
-                this.episode = eps.number
-            }
+            Episode(
+                data = Data(res.title, eps.number, res.id, eps.id).toJson(),
+                episode = eps.number
+            )
         } ?: throw ErrorLoadingException("No Episode")
 
         return newTvSeriesLoadResponse(
@@ -140,24 +138,22 @@ class KisskhProvider : MainAPI() {
             "$apiUrl/DramaList/Episode/${loadData.epsId}.png?err=false&ts=null&time=null&kkey=$kkey",
             referer = "$mainUrl/Drama/${getTitle("${loadData.title}")}/Episode-${loadData.eps}?id=${loadData.id}&ep=${loadData.epsId}&page=0&pageSize=100"
         ).parsedSafe<Sources>()?.let { source ->
-            coroutineScope {
-                listOf(source.video, source.thirdParty).map { link ->
-                    safeApiCall {
-                        if (link?.contains(".m3u8") == true) {
-                            M3u8Helper.generateM3u8(
-                                this@KisskhProvider.name,
-                                link,
-                                referer = "$mainUrl/",
-                                headers = mapOf("Origin" to mainUrl)
-                            ).forEach(callback)
-                        } else if (link != null) {
-                            loadExtractor(
-                                link.substringBefore("=http"),
-                                "$mainUrl/",
-                                subtitleCallback,
-                                callback
-                            )
-                        }
+            listOf(source.video, source.thirdParty).apmap { link ->
+                safeApiCall {
+                    if (link?.contains(".m3u8") == true) {
+                        M3u8Helper.generateM3u8(
+                            this.name,
+                            link,
+                            referer = "$mainUrl/",
+                            headers = mapOf("Origin" to mainUrl)
+                        ).forEach(callback)
+                    } else if (link != null) {
+                        loadExtractor(
+                            link.substringBefore("=http"),
+                            "$mainUrl/",
+                            subtitleCallback,
+                            callback
+                        )
                     }
                 }
             }
@@ -167,7 +163,7 @@ class KisskhProvider : MainAPI() {
         val subKkey = try {
             KisskhKey.subKey(loadData.epsId?.toInt() ?: return true)
         } catch (e: Exception) {
-            return true
+            return true  // continue even if sub fetch fails
         }
 
         app.get("$apiUrl/Sub/${loadData.epsId}?kkey=$subKkey").text.let { res ->
@@ -175,23 +171,22 @@ class KisskhProvider : MainAPI() {
                 val subUrl = sub.src ?: return@forEach
                 val lang = getLanguage(sub.label ?: return@forEach)
 
-                // Filter Indonesian only
-                if (lang != "Indonesian") return@forEach
-
                 // Fetch raw subtitle
                 val rawContent = app.get(subUrl).text
 
-                // Decrypt if needed
+                // Decrypt if needed (detect from URL extension + content)
                 val finalContent = KisskhKey.decryptSubtitleContent(rawContent, subUrl)
 
-                // Encode ke base64 data URI — semua sub kisskh .srt
-                val base64 = android.util.Base64.encodeToString(
-                    finalContent.toByteArray(Charsets.UTF_8),
-                    android.util.Base64.NO_WRAP
+                // ── Save ke cache file (like Aniyomi) ──────────────
+                val cacheFile = java.io.File(
+                    context.cacheDir,
+                    "kisskh_sub_${loadData.epsId}_${lang}.srt"
                 )
+                cacheFile.writeText(finalContent, Charsets.UTF_8)
 
+                // ── Pass file URI ke player ────────────────────────
                 subtitleCallback.invoke(
-                    SubtitleFile(lang, "data:text/srt;base64,$base64", null)
+                    SubtitleFile(lang, "file://${cacheFile.absolutePath}")
                 )
             }
         }
