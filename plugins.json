@@ -1,10 +1,10 @@
 [
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=taroscafe.com&sz=%size%",
-        "fileHash": "sha256-d3ecf065df44b2f84cb2e5a7248a0a2c4bdc096397d0a547cf0ab57480bcbfb8",
+        "fileHash": "sha256-2c26e7d15e064e78b6f74dc1dbef20a90658ba4068988929ad15fd0795aa2bde",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cemmekx096-cmd/Project67",
-        "fileSize": 52891,
+        "fileSize": 52960,
         "status": 1,
         "authors": [
             "Cuk"
