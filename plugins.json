@@ -1,23 +1,22 @@
 [
     {
-        "iconUrl": "https://www.google.com/s2/favicons?domain=kisskh.do&sz=%size%",
-        "fileHash": "sha256-336dcc66aa0e531a0658ac5651317c564dd45060dd8b312057b7763d0a22b097",
+        "iconUrl": "https://www.google.com/s2/favicons?domain=taroscafe.com&sz=%size%",
+        "fileHash": "sha256-780ea0066d4872df75d53ecfa74dfbd8a807c49527dbdaae71eeb7ebab511ad2",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cemmekx096-cmd/Project67",
-        "fileSize": 29232,
+        "fileSize": 50047,
         "status": 1,
-        "language": "id",
         "authors": [
-            "cemmekx096-cmd"
+            "Cuk"
         ],
         "tvTypes": [
-            "AsianDrama",
-            "Anime"
+            "Movie",
+            "TvSeries"
         ],
-        "version": 4,
-        "internalName": "KisskhProvider",
-        "description": "KissKH - Drama/Anime provider with kkey auth & dual AES subtitle decrypt (V1/V2)",
-        "url": "https://raw.githubusercontent.com/cemmekx096-cmd/Project67/builds/KisskhProvider.cs3",
-        "name": "KisskhProvider"
+        "version": 1,
+        "internalName": "IndoMovie",
+        "description": "Nonton film Indonesia dari Taroscafe, PencuriMovie, dan MovieBox dalam 1 extension",
+        "url": "https://raw.githubusercontent.com/cemmekx096-cmd/Project67/builds/IndoMovie.cs3",
+        "name": "IndoMovie"
     }
 ]
