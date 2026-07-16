@@ -26,7 +26,7 @@ class MovieboxProvider : MainAPI() {
         // Info project Firebase moviebox.ph, kepake buat generate mb_token
         private const val FIREBASE_PROJECT_ID = "mb-seo-f9b99"
         private const val FIREBASE_APP_ID = "1:854587335712:web:da0ea605801a7998114845"
-        private const val FIREBASE_API_KEY = "AIzaSyCx80ru6-RXeTi3GvqkFsMVyMf-vpgIoVw"
+        private const val FIREBASE_API_KEY = "AIzaSyC7363hLA2A6Udh-iz0ybG5ng6FUiu4_aM"
         private const val FIREBASE_SDK_VERSION = "w:0.6.4"
 
         private var cachedToken: String? = null
@@ -73,11 +73,13 @@ class MovieboxProvider : MainAPI() {
         val now = System.currentTimeMillis()
         cachedToken?.let { if (now < cachedTokenExpiry) return it }
 
-        val res = app.post(
+        val rawRes = app.post(
             "https://firebaseinstallations.googleapis.com/v1/projects/$FIREBASE_PROJECT_ID/installations",
             headers = mapOf(
                 "Content-Type" to "application/json",
-                "x-goog-api-key" to FIREBASE_API_KEY
+                "x-goog-api-key" to FIREBASE_API_KEY,
+                "Referer" to "$mainUrl/",
+                "Origin" to mainUrl
             ),
             requestBody = mapOf(
                 "fid" to generateFid(),
@@ -85,7 +87,8 @@ class MovieboxProvider : MainAPI() {
                 "appId" to FIREBASE_APP_ID,
                 "sdkVersion" to FIREBASE_SDK_VERSION
             ).toJson().toRequestBody(RequestBodyTypes.JSON.toMediaTypeOrNull())
-        ).parsedSafe<InstallationRes>()
+        )
+        val res = rawRes.parsedSafe<InstallationRes>()
 
         val token = res?.authToken?.token ?: throw ErrorLoadingException("Gagal ambil token MovieBox")
         val expiresInSec = res.authToken.expiresIn?.removeSuffix("s")?.toLongOrNull() ?: 3600L
