@@ -111,10 +111,11 @@ class TaroscafeProvider : MainAPI() {
         }
     }
 
+    // Search dimatikan sesuai permintaan: hasil pencarian situs ini gak melewati
+    // filter cross-reference kategori dengan aman (resiko konten semi/18+ nongol),
+    // jadi search cukup ditangani MovieBox aja.
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("$mainUrl/?s=$query", timeout = 30L).document
-        val blockedSlugs = getBlockedSlugs()
-        return document.select("article.item-infinite").mapNotNull { it.toSearchResult(blockedSlugs) }
+        return emptyList()
     }
 
     override suspend fun load(url: String): LoadResponse {

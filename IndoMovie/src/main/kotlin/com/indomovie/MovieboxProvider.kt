@@ -22,6 +22,17 @@ class MovieboxProvider : MainAPI() {
     override var lang = "id"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
+    companion object {
+        // Info project Firebase moviebox.ph, kepake buat generate mb_token
+        private const val FIREBASE_PROJECT_ID = "mb-seo-f9b99"
+        private const val FIREBASE_APP_ID = "1:854587335712:web:da0ea605801a7998114845"
+        private const val FIREBASE_API_KEY = "AIzaSyCx80ru6-RXeTi3GvqkFsMVyMf-vpgIoVw"
+        private const val FIREBASE_SDK_VERSION = "w:0.6.4"
+
+        private var cachedToken: String? = null
+        private var cachedTokenExpiry: Long = 0L
+    }
+
     override val mainPage: List<MainPageData> = mainPageOf(
         "872031290915189720" to "Trending Now",
         "5283462032510044280" to "Latest Indonesian Drama",
@@ -29,9 +40,71 @@ class MovieboxProvider : MainAPI() {
         "5848753831881965888" to "Indonesian Horror Stories",
     )
 
+    // ===== Firebase Installations token (mb_token) =====
+    // Token ini dipake sebagai Bearer buat semua request ke h5-api.aoneroom.com.
+    // Confirmed: bukan digenerate JS custom, tapi dari Firebase Installations API resmi.
+    // Berlaku 7 hari (604800s), jadi kita cache biar gak minta token baru tiap request.
+    private fun generateFid(): String {
+        // Spesifikasi FID: 17 byte random, 4 bit pertama byte awal diset jadi 0111 (versi 4 random)
+        val bytes = ByteArray(17)
+        java.security.SecureRandom().nextBytes(bytes)
+        bytes[0] = (0x70 or (bytes[0].toInt() and 0x0F)).toByte()
+        return base64UrlEncode(bytes).substring(0, 22)
+    }
+
+    private fun base64UrlEncode(bytes: ByteArray): String {
+        val table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        val sb = StringBuilder()
+        var i = 0
+        while (i < bytes.size) {
+            val b0 = bytes[i].toInt() and 0xFF
+            val b1 = if (i + 1 < bytes.size) bytes[i + 1].toInt() and 0xFF else 0
+            val b2 = if (i + 2 < bytes.size) bytes[i + 2].toInt() and 0xFF else 0
+            sb.append(table[b0 shr 2])
+            sb.append(table[((b0 and 0x03) shl 4) or (b1 shr 4)])
+            if (i + 1 < bytes.size) sb.append(table[((b1 and 0x0F) shl 2) or (b2 shr 6)])
+            if (i + 2 < bytes.size) sb.append(table[b2 and 0x3F])
+            i += 3
+        }
+        return sb.toString()
+    }
+
+    private suspend fun getMbToken(): String {
+        val now = System.currentTimeMillis()
+        cachedToken?.let { if (now < cachedTokenExpiry) return it }
+
+        val res = app.post(
+            "https://firebaseinstallations.googleapis.com/v1/projects/$FIREBASE_PROJECT_ID/installations",
+            headers = mapOf(
+                "Content-Type" to "application/json",
+                "x-goog-api-key" to FIREBASE_API_KEY
+            ),
+            requestBody = mapOf(
+                "fid" to generateFid(),
+                "authVersion" to "FIS_v2",
+                "appId" to FIREBASE_APP_ID,
+                "sdkVersion" to FIREBASE_SDK_VERSION
+            ).toJson().toRequestBody(RequestBodyTypes.JSON.toMediaTypeOrNull())
+        ).parsedSafe<InstallationRes>()
+
+        val token = res?.authToken?.token ?: throw ErrorLoadingException("Gagal ambil token MovieBox")
+        val expiresInSec = res.authToken.expiresIn?.removeSuffix("s")?.toLongOrNull() ?: 3600L
+        cachedToken = token
+        cachedTokenExpiry = now + (expiresInSec * 1000) - 60_000L // buffer 1 menit
+
+        return token
+    }
+
+    private suspend fun apiHeaders(): Map<String, String> = mapOf(
+        "Authorization" to "Bearer ${getMbToken()}",
+        "Content-Type" to "application/json",
+        "X-Client-Info" to "{\"timezone\":\"Asia/Jakarta\"}",
+        "X-Request-Lang" to "en"
+    )
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = "$mainAPIUrl/wefeed-h5api-bff/ranking-list/content?id=${request.data}&page=$page&perPage=12"
-        val home = app.get(url).parsedSafe<Media>()?.data?.subjectList?.map {
+        val home = app.get(url, headers = apiHeaders()).parsedSafe<Media>()?.data?.subjectList?.map {
             it.toSearchResponse(this)
         } ?: throw ErrorLoadingException("No Data Found")
 
@@ -42,14 +115,16 @@ class MovieboxProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         return app.post(
-            "$secondAPIUrl/wefeed-h5-bff/web/subject/search", requestBody = mapOf(
+            "$mainAPIUrl/wefeed-h5api-bff/subject/search",
+            headers = apiHeaders(),
+            requestBody = mapOf(
                 "keyword" to query,
                 "page" to "1",
-                "perPage" to "0",
-                "subjectType" to "0",
+                "perPage" to 28,
+                "subjectType" to 0
             ).toJson().toRequestBody(RequestBodyTypes.JSON.toMediaTypeOrNull())
         ).parsedSafe<Media>()?.data?.items?.map { it.toSearchResponse(this) }
-            ?: throw ErrorLoadingException()
+            ?: emptyList()
     }
 
     override suspend fun load(url: String): LoadResponse {
@@ -143,6 +218,15 @@ class MovieboxProvider : MainAPI() {
         }
 
         return true
+    }
+
+    data class InstallationRes(
+        @JsonProperty("authToken") val authToken: AuthToken? = null,
+    ) {
+        data class AuthToken(
+            @JsonProperty("token") val token: String? = null,
+            @JsonProperty("expiresIn") val expiresIn: String? = null,
+        )
     }
 
     data class LoadData(

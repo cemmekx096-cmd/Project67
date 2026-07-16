@@ -41,9 +41,9 @@ class PencurimovieProvider : MainAPI() {
         }
     }
 
+    // Search dimatikan sesuai permintaan: search yang aktif cukup di MovieBox aja.
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("$mainUrl/?s=$query", timeout = 50L).document
-        return document.select("div.ml-item").mapNotNull { it.toSearchResult() }
+        return emptyList()
     }
 
     override suspend fun load(url: String): LoadResponse {
