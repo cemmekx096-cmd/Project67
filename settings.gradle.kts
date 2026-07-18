@@ -9,15 +9,21 @@ dependencyResolutionManagement {
 
 rootProject.name = "CloudstreamPlugins"
 
-// This file sets what projects are included. All new projects should get automatically included unless specified in "disabled" variable.
-val disabled = listOf<String>()
+// This file sets what projects are included, based on the folder names listed in .github/always_build.json
+val alwaysBuildFile = File(rootDir, ".github/always_build.json")
+val allowedFolders = alwaysBuildFile.readText()
+    .trim()
+    .removePrefix("[")
+    .removeSuffix("]")
+    .split(",")
+    .map { it.trim().trim('"') }
+    .filter { it.isNotEmpty() }
 
-File(rootDir, ".").eachDir { dir ->
-    if (!disabled.contains(dir.name) && File(dir, "build.gradle.kts").exists()) {
-        include(dir.name)
+allowedFolders.forEach { name ->
+    val dir = File(rootDir, name)
+    if (dir.exists() && File(dir, "build.gradle.kts").exists()) {
+        include(name)
+    } else {
+        println("Skip '$name': folder atau build.gradle.kts tidak ditemukan")
     }
-}
-
-fun File.eachDir(block: (File) -> Unit) {
-    listFiles()?.filter { it.isDirectory }?.forEach { block(it) }
 }
