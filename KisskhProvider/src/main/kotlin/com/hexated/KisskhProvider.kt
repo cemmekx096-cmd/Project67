@@ -2,7 +2,6 @@ package com.hexated
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.CloudStreamApp.Companion.context
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.mvvm.safeApiCall
@@ -163,18 +162,6 @@ class KisskhProvider : MainAPI() {
             return true  // continue even if sub fetch fails
         }
 
-        val ctx = context
-        if (ctx == null) {
-            // Gak dapet context -- skip proses subtitle daripada crash,
-            // video tetap jalan tanpa subtitle
-            return true
-        }
-
-        // Bersihin semua cache subtitle lama dulu sebelum bikin yang baru,
-        // biar file GK menumpuk tiap kali ganti episode/judul
-        ctx.cacheDir.listFiles { file -> file.name.startsWith("kisskh_sub_") }
-            ?.forEach { it.delete() }
-
         app.get("$apiUrl/Sub/${loadData.epsId}?kkey=$subKkey").text.let { res ->
             tryParseJson<List<Subtitle>>(res)?.forEach { sub ->
                 val subUrl = sub.src ?: return@forEach
@@ -183,19 +170,19 @@ class KisskhProvider : MainAPI() {
                 // Fetch raw subtitle
                 val rawContent = app.get(subUrl).text
 
-                // Decrypt kalau perlu (deteksi dari ekstensi URL + isi konten)
+                // Decrypt kalau perlu (deteksi dari ekstensi URL + isi konten) -- logic ini
+                // gak diubah sama sekali, tetap 100% pakai punya KisskhKey.kt yang asli
                 val finalContent = KisskhKey.decryptSubtitleContent(rawContent, subUrl)
 
-                // Simpen ke cache file, lokasinya di data/data/<package>/cache
-                val cacheFile = java.io.File(
-                    ctx.cacheDir,
-                    "kisskh_sub_${loadData.epsId}_${lang}.srt"
+                // Kirim sebagai data URI (base64), langsung nempel di URL-nya sendiri.
+                // Gak nulis ke storage sama sekali -> gak ada risiko race condition
+                // kayak kejadian kemarin (file kehapus/ketimpa pas lagi dibaca player).
+                val base64 = android.util.Base64.encodeToString(
+                    finalContent.toByteArray(Charsets.UTF_8),
+                    android.util.Base64.NO_WRAP
                 )
-                cacheFile.writeText(finalContent, Charsets.UTF_8)
-
-                // Kirim path file lokal ke player
                 subtitleCallback.invoke(
-                    SubtitleFile(lang, "file://${cacheFile.absolutePath}")
+                    SubtitleFile(lang, "data:text/plain;base64,$base64")
                 )
             }
         }
