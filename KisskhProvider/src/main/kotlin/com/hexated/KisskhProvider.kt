@@ -2,7 +2,7 @@ package com.hexated
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.AcraApplication.Companion.context
+import com.lagradost.cloudstream3.CloudStreamApp.Companion.context
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.mvvm.safeApiCall
@@ -84,10 +84,9 @@ class KisskhProvider : MainAPI() {
             ?: throw ErrorLoadingException("Invalid Json response")
 
         val episodes = res.episodes?.map { eps ->
-            Episode(
-                data = Data(res.title, eps.number, res.id, eps.id).toJson(),
-                episode = eps.number
-            )
+            newEpisode(Data(res.title, eps.number, res.id, eps.id).toJson()) {
+                this.episode = eps.number
+            }
         } ?: throw ErrorLoadingException("No Episode")
 
         return newTvSeriesLoadResponse(
@@ -136,7 +135,7 @@ class KisskhProvider : MainAPI() {
             "$apiUrl/DramaList/Episode/${loadData.epsId}.png?err=false&ts=null&time=null&kkey=$kkey",
             referer = "$mainUrl/Drama/${getTitle("${loadData.title}")}/Episode-${loadData.eps}?id=${loadData.id}&ep=${loadData.epsId}&page=0&pageSize=100"
         ).parsedSafe<Sources>()?.let { source ->
-            listOf(source.video, source.thirdParty).apmap { link ->
+            listOf(source.video, source.thirdParty).amap { link ->
                 safeApiCall {
                     if (link?.contains(".m3u8") == true) {
                         M3u8Helper.generateM3u8(
