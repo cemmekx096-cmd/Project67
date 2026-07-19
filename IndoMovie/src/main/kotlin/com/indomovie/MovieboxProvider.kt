@@ -31,6 +31,7 @@ class MovieboxProvider : MainAPI() {
         "872031290915189720" to "Trending Now",
         "5283462032510044280" to "Latest Indonesian Drama",
         "6528093688173053896" to "Trending Indonesian Movies",
+        "4380734070238626200" to "K-Drama",
         "5848753831881965888" to "Indonesian Horror Stories",
     )
 
