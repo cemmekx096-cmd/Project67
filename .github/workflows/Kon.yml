@@ -56,12 +56,12 @@ jobs:
             cp "$f"/build/*.cs3 "$GITHUB_WORKSPACE/builds/$f/" 2>/dev/null || true
           done
 
-      - name: Generate plugins.json
+      - name: Generate plugins.json with jq
         run: |
           cd $GITHUB_WORKSPACE/builds
           
-          echo '[' > plugins.json
-          FIRST=true
+          # Initialize empty array
+          echo '[]' > plugins.json
           
           for f in ${{ steps.folders.outputs.folders }}; do
             for cs3 in "$f"/*.cs3; do
@@ -69,33 +69,27 @@ jobs:
                 NAME=$(basename "$cs3" .cs3)
                 HASH=$(sha256sum "$cs3" | cut -d' ' -f1)
                 REPO="${GITHUB_REPOSITORY:-cemmekx096-cmd/Project67}"
+                URL="https://raw.githubusercontent.com/$REPO/builds/$f/$(basename "$cs3")"
                 
-                if [ "$FIRST" = true ]; then
-                  FIRST=false
-                else
-                  echo ',' >> plugins.json
-                fi
+                echo "Adding plugin: $NAME"
                 
-                cat >> plugins.json << EOF
-  {
-    "name": "$NAME",
-    "version": "1.0.0",
-    "download": "https://raw.githubusercontent.com/$REPO/builds/$f/$(basename "$cs3")",
-    "hash": "$HASH"
-  }
-EOF
+                # Add entry to plugins.json
+                jq --arg name "$NAME" \
+                   --arg version "1.0.0" \
+                   --arg download "$URL" \
+                   --arg hash "$HASH" \
+                   '. += [{"name": $name, "version": $version, "download": $download, "hash": $hash}]' \
+                   plugins.json > tmp.json
+                mv tmp.json plugins.json
               fi
             done
           done
           
-          echo ']' >> plugins.json
-          
-          # Validasi JSON
           echo "=== plugins.json content ==="
           cat plugins.json
           echo "=============================="
           
-          # Test valid JSON
+          # Validate JSON
           jq empty plugins.json || exit 1
 
       - name: Push to builds branch
