@@ -1,0 +1,108 @@
+name: Build🔥🔥
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          path: "src"
+
+      - name: Checkout builds branch
+        uses: actions/checkout@v4
+        with:
+          ref: "builds"
+          path: "builds"
+
+      - name: Read always_build.json
+        id: folders
+        run: |
+          cd $GITHUB_WORKSPACE/src
+          FOLDERS=$(jq -r '.[]' .github/always_build.json | tr '\n' ' ')
+          echo "Folder yang akan dibuild: $FOLDERS"
+          echo "folders=$FOLDERS" >> $GITHUB_OUTPUT
+
+      - name: Clean old .cs3 files
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+          for f in ${{ steps.folders.outputs.folders }}; do
+            rm -f "$f"/*.cs3 || true
+          done
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "adopt"
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Build Plugins
+        run: |
+          cd $GITHUB_WORKSPACE/src
+          chmod +x gradlew
+          ./gradlew make
+          
+          # Copy .cs3 files
+          for f in ${{ steps.folders.outputs.folders }}; do
+            mkdir -p "$GITHUB_WORKSPACE/builds/$f"
+            cp "$f"/build/*.cs3 "$GITHUB_WORKSPACE/builds/$f/" 2>/dev/null || true
+          done
+
+      - name: Generate plugins.json
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+          
+          echo '[' > plugins.json
+          FIRST=true
+          
+          for f in ${{ steps.folders.outputs.folders }}; do
+            for cs3 in "$f"/*.cs3; do
+              if [ -f "$cs3" ]; then
+                NAME=$(basename "$cs3" .cs3)
+                HASH=$(sha256sum "$cs3" | cut -d' ' -f1)
+                REPO="${GITHUB_REPOSITORY:-cemmekx096-cmd/Project67}"
+                
+                if [ "$FIRST" = true ]; then
+                  FIRST=false
+                else
+                  echo ',' >> plugins.json
+                fi
+                
+                cat >> plugins.json << EOF
+  {
+    "name": "$NAME",
+    "version": "1.0.0",
+    "download": "https://raw.githubusercontent.com/$REPO/builds/$f/$(basename "$cs3")",
+    "hash": "$HASH"
+  }
+EOF
+              fi
+            done
+          done
+          
+          echo ']' >> plugins.json
+          
+          # Validasi JSON
+          echo "=== plugins.json content ==="
+          cat plugins.json
+          echo "=============================="
+          
+          # Test valid JSON
+          jq empty plugins.json || exit 1
+
+      - name: Push to builds branch
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git commit -m "Build $GITHUB_SHA" || echo "No changes to commit"
+          git push
