@@ -1,43 +1,14 @@
 [
-    {
-        "iconUrl": "https://www.google.com/s2/favicons?domain=taroscafe.com&sz=%size%",
-        "fileHash": "sha256-71398b9c587a2da0b9ee04e3400d73641af8dda14862cff26f68a838d4808fbe",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/cemmekx096-cmd/Project67",
-        "fileSize": 51152,
-        "status": 1,
-        "authors": [
-            "Cuk"
-        ],
-        "tvTypes": [
-            "Movie",
-            "TvSeries"
-        ],
-        "version": 1,
-        "internalName": "IndoMovie",
-        "description": "Nonton film Indonesia dari Taroscafe, PencuriMovie, dan MovieBox dalam 1 extension",
-        "url": "https://raw.githubusercontent.com/cemmekx096-cmd/Project67/builds/IndoMovie.cs3",
-        "name": "IndoMovie"
-    },
-    {
-        "iconUrl": "https://www.google.com/s2/favicons?domain=kisskh.do&sz=%size%",
-        "fileHash": "sha256-a0de87f697deb9abafcbd24ed45e7e93bb704822d71da3e1a18cc8ed5be97bb4",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/cemmekx096-cmd/Project67",
-        "fileSize": 28374,
-        "status": 1,
-        "language": "id",
-        "authors": [
-            "cemmekx096-cmd"
-        ],
-        "tvTypes": [
-            "AsianDrama",
-            "Anime"
-        ],
-        "version": 4,
-        "internalName": "KisskhProvider",
-        "description": "KissKH - Drama/Anime provider with kkey auth & dual AES subtitle decrypt (V1/V2)",
-        "url": "https://raw.githubusercontent.com/cemmekx096-cmd/Project67/builds/KisskhProvider.cs3",
-        "name": "KisskhProvider"
-    }
+  {
+    "name": "KisskhProvider",
+    "version": "1.0.0",
+    "download": "https://raw.githubusercontent.com/cemmekx096-cmd/Project67/builds/KisskhProvider/KisskhProvider.cs3",
+    "hash": "a0de87f697deb9abafcbd24ed45e7e93bb704822d71da3e1a18cc8ed5be97bb4"
+  },
+  {
+    "name": "IndoMovie",
+    "version": "1.0.0",
+    "download": "https://raw.githubusercontent.com/cemmekx096-cmd/Project67/builds/IndoMovie/IndoMovie.cs3",
+    "hash": "71398b9c587a2da0b9ee04e3400d73641af8dda14862cff26f68a838d4808fbe"
+  }
 ]
